@@ -16,7 +16,6 @@ function Computer() {
   const outerHeight = 1.5;
   const innerWidth = 1.6;
   const innerHeight = 1.1;
-  const depth = 0.2;
 
   const frameGeometry = useMemo(() => {
     const shape = new THREE.Shape();
@@ -39,10 +38,22 @@ function Computer() {
     shape.holes.push(hole);
 
     return new THREE.ExtrudeGeometry(shape, {
-      depth,
+      depth: 0.2,
       bevelEnabled: false,
     });
-  }, [outerWidth, outerHeight, innerWidth, innerHeight, depth]);
+  }, [outerWidth, outerHeight, innerWidth, innerHeight]);
+
+  const backBoxGeometry = useMemo(() => {
+    const shape = new THREE.Shape();
+
+    return new THREE.ExtrudeGeometry(shape, {
+      depth: 0.1,
+      bevelEnabled: true,
+      bevelThickness: 0.02,
+      bevelSize: 0.02,
+      bevelSegments: 2,
+    });
+  },);
 
   const screenGeometry = useMemo(() => {
     const geom = new THREE.PlaneGeometry(innerWidth, innerHeight, 64, 64);
@@ -59,67 +70,81 @@ function Computer() {
 
     geom.computeVertexNormals();
     return geom;
-  }, [innerWidth, innerHeight]);
+  },);
 
   function frame() {
-    // return frame
     return (
       <group ref={ref} position={[0, 0, 0]}>
-        {/* Solid frame */}
         <mesh ref={ref} position={[0, 0, 0]}>
           <primitive object={frameGeometry} attach="geometry" />
           <meshStandardMaterial color="gray" side={THREE.DoubleSide} />
         </mesh>
         {showVertices &&
           <>
-            {/* Wireframe overlay */}
-            < mesh position={[0, 0, 0]}>
+            <mesh position={[0, 0, 0]}>
               <primitive object={frameGeometry} attach="geometry" />
               <meshBasicMaterial color="black" wireframe />
             </mesh>
-
-            {/* Edge lines */}
             <lineSegments position={[0, 0, 0]}>
               <edgesGeometry args={[frameGeometry]} />
               <lineBasicMaterial color="red" />
             </lineSegments>
           </>
         }
-      </group >
+      </group>
+    );
+  }
+
+  function backBox() {
+    return (
+      <group position={[0, 0, 0.7]}>
+        <mesh>
+          <primitive object={backBoxGeometry} attach="geometry" />
+          <meshStandardMaterial color="orange" side={THREE.DoubleSide} />
+        </mesh>
+        {showVertices &&
+          <>
+            <mesh>
+              <primitive object={backBoxGeometry} attach="geometry" />
+              <meshBasicMaterial color="black" wireframe />
+            </mesh>
+            <lineSegments>
+              <edgesGeometry args={[backBoxGeometry]} />
+              <lineBasicMaterial color="red" />
+            </lineSegments>
+          </>
+        }
+      </group>
     );
   }
 
   function screen() {
-    //return screen
     return (
-      <group ref={ref} position={[0, 0, 0]}>
-        {/* Inner plane */}
-        <mesh position={[0, 0, depth / 2 - 0.15]}>
+      <group ref={ref} position={[0, 0, 0.15]}>
+        <mesh>
           <primitive object={screenGeometry} />
           <meshStandardMaterial color="blue" side={THREE.DoubleSide} />
         </mesh>
         {showVertices &&
           <>
-            {/* Wireframe overlay */}
-            < mesh position={[0, 0, 0]}>
+            <mesh position={[0, 0, 0]}>
               <primitive object={screenGeometry} />
               <meshBasicMaterial color="black" wireframe />
             </mesh>
-
-            {/* Edge lines */}
             <lineSegments position={[0, 0, 0]}>
               <edgesGeometry args={[screenGeometry]} />
               <lineBasicMaterial color="blue" />
             </lineSegments>
           </>
         }
-      </group >
+      </group>
     );
   }
 
   return (
     <group>
       {frame()}
+      {backBox()}
       {screen()}
     </group>
   )
