@@ -1,11 +1,9 @@
 import { useRef, useMemo, useEffect } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, useHelper } from '@react-three/drei'
+import { useFrame, useThree, Canvas } from '@react-three/fiber'
+import { useHelper } from '@react-three/drei'
 import * as THREE from 'three'
 
-const showLightDebug = true;
-const showCameraDebug = true;
-const showFloorDebug = false;
+const showLightDebug = false;
 
 //* Scene Stuff *//
 function Lights() {
@@ -37,113 +35,101 @@ function Lights() {
 }
 
 //* Camera Setup *//
+/**
+ * @param {THREE.Camera} cam - the camera to animate
+ * @param {number} elapsed - time since animation started
+ * @param {Object} options - configuration
+ *   options.startPos: THREE.Vector3 - start position
+ *   options.endPos: THREE.Vector3 - end position
+ *   options.startFov: number - starting FOV
+ *   options.endFov: number - ending FOV
+ *   options.duration: number - total duration in seconds
+ */
 
-//Triggers on website open
-function useZoomOnLaunch(camera, duration = 3) {
-  const startTime = useRef(null);
-  const hasStarted = useRef(false);
+export function animateCamera(cam, elapsed, options) {
+  const { startPos, endPos, startFov, endFov, duration } = options;
 
-  useFrame(({ clock }) => {
-    if (!camera || hasStarted.current) return;
+  const t = THREE.MathUtils.clamp(elapsed / duration, 0, 1);
+  const smoothT = THREE.MathUtils.smootherstep(t, 0, 1);
 
-    if (startTime.current === null) {
-      startTime.current = clock.getElapsedTime();
-    }
+  if (startPos && endPos) {
+    cam.position.lerpVectors(startPos, endPos, smoothT);
+  }
 
-    const elapsed = clock.getElapsedTime() - startTime.current;
-    let t = Math.min(elapsed / duration, 1);
+  if (startFov !== undefined && endFov !== undefined) {
+    cam.fov = THREE.MathUtils.lerp(startFov, endFov, smoothT);
+    cam.updateProjectionMatrix();
+  }
 
-    // Ease-out cubic
-    t = 1 - Math.pow(1 - t, 3);
-
-    const startPos = new THREE.Vector3(0, 0, -5);
-    const endPos = new THREE.Vector3(0, -0.25, -1.5);
-
-    camera.position.lerpVectors(startPos, endPos, t);
-
-    if (t >= 1) {
-      hasStarted.current = true;
-    }
-  });
+  cam.lookAt(0, 0, 0);
 }
 
-//triggers on start button pressed
-function useZoomOnStart(camera, playClicked, duration = 1) {
-  const startTime = useRef(null);
-  const hasPlayed = useRef(false);
+function Camera({ animPlayStarted }) {
+  const { set } = useThree();
+  const cameraRef = useRef();
 
-  const startPos = useMemo(() => new THREE.Vector3(0, -0.25, -1.5), []);
-  const endPos = useMemo(() => new THREE.Vector3(0, 1, 0.5), []);
+  const cam = useMemo(() => {
+    const c = new THREE.PerspectiveCamera(
+      45,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    c.position.set(0, 0, -8);
+    c.lookAt(0, 0, 0);
+    return c;
+  }, []);
+
+  useEffect(() => {
+    set({ camera: cam });
+  }, [set, cam]);
+
+  const playStartTimeRef = useRef(null);
 
   useFrame(({ clock }) => {
-    if (!camera || !playClicked || hasPlayed.current) return;
+    const elapsed = clock.getElapsedTime();
 
-    if (startTime.current === null) {
-      startTime.current = clock.getElapsedTime();
-    }
+    if (!animPlayStarted) {
+      // Title animation
+      animateCamera(cam, elapsed, {
+        startPos: new THREE.Vector3(0, 0, -10),
+        endPos: new THREE.Vector3(0, 0, -3),
+        duration: 3,
+      });
+    } else {
+      if (playStartTimeRef.current === null) {
+        playStartTimeRef.current = elapsed;
+      }
 
-    const elapsed = clock.getElapsedTime() - startTime.current;
-    let t = Math.min(elapsed / duration, 1);
+      const playElapsed = elapsed - playStartTimeRef.current;
 
-    // Ease-out cubic
-    t = 1 - Math.pow(1 - t, 3);
-
-    camera.position.lerpVectors(startPos, endPos, t);
-
-    if (t >= 1) {
-      hasPlayed.current = true;
+      animateCamera(cam, playElapsed, {
+        startPos: new THREE.Vector3(0, 0, -3),
+        endPos: new THREE.Vector3(0, 0, 0),
+        startFov: 45,
+        endFov: 100,
+        duration: 3
+      });
     }
   });
-}
 
-function Camera({ playClicked }) {
-  const { set } = useThree()
-  const cameraRef = useRef()
-
-  // Create camera once
-  useEffect(() => {
-    const cam = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000)
-    cam.position.set(0, 0, -5)
-    cameraRef.current = cam
-
-    set({ camera: cam }) // set as default
-
-    return () => {
-      cameraRef.current = null
-    }
-  }, [set])
-
-  const camera = cameraRef.current
-
-  // Camera helper
-  const helper = useMemo(() => camera && new THREE.CameraHelper(camera), [camera])
-
-  // Zoom hooks wrapped in effect to avoid conditional hook call
-  useEffect(() => {
-    if (!camera) return
-
-    useZoomOnLaunch(camera)
-    useZoomOnStart(camera, playClicked)
-  }, [camera, playClicked])
-
-  return (
-    <>
-      {camera && <primitive object={camera} />}
-      {showCameraDebug && camera && <primitive object={helper} />}
-      {showFloorDebug && <>
-        <axesHelper args={[5]} />
-        <gridHelper args={[10, 10]} />
-      </>}
-    </>
-  )
+  return <primitive ref={cameraRef} object={cam} />;
 }
 
 //* Main Scene Component *//
-export function Scene({ playClicked }) {
+import { Computer } from './Computer.jsx'
+import { UI } from './UI.jsx'
+
+export function MainMenu({ animPlayStarted, setAnimPlayStart }) {
   return (
     <>
-      <Lights />
-      <Camera playClicked={playClicked} />
+      <Canvas className='bg-white'>
+        <Computer />
+        <Lights />
+        <Camera animPlayStarted={animPlayStarted} />
+      </Canvas>
+      <UI setAnimPlayStart={setAnimPlayStart} />
     </>
   );
 }
+

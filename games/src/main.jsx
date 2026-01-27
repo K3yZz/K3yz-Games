@@ -1,27 +1,55 @@
 import { createRoot } from 'react-dom/client'
-import { StrictMode, useState } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { useState, useEffect, StrictMode } from "react";
+import { motion } from "motion/react";
 
 import './main.css'
 
-import { Computer } from './main-menu/Computer.jsx'
-import { Scene } from './main-menu/Scene.jsx'
-import { UI } from './main-menu/UI.jsx'
+import { MainMenu } from './main-menu/Scene';
+import { GameUI } from './game/UI'
+import Spinner from './other/Spinner'
 
 function App() {
-  const [playClicked, setPlayClicked] = useState(false);
+  const [animPlayStart, setAnimPlayStart] = useState(false);
+  const [showGame, setShowGame] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handlePlayClick = () => {
-    setPlayClicked(true);
-  };
+  //transition
+  useEffect(() => {
+    if (animPlayStart) {
+      const timer = setTimeout(() => {
+        setShowGame(true);
+      }, 2400);
+      return () => clearTimeout(timer);
+    } else {
+      setShowGame(false);
+    }
+  }, [animPlayStart]);
+
+  //loading
+  useEffect(() => {
+    if (showGame) {
+      setLoading(true);
+
+      const timer = setTimeout(() => {
+        setLoading(false);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [showGame]);
 
   return (
     <StrictMode>
-      <Canvas className='bg-white'>
-        <Computer />
-        <Scene playClicked={playClicked} />
-      </Canvas>
-      <UI onPlayClick={handlePlayClick} />
+      <div className={`loadingScreen ${loading ? '' : 'hidden'} `} >
+        <Spinner />
+      </div>
+      {!showGame && (
+        <MainMenu
+          animPlayStarted={animPlayStart}
+          setAnimPlayStart={setAnimPlayStart}
+        />
+      )}
+      {showGame && <GameUI />}
     </StrictMode>
   );
 }
