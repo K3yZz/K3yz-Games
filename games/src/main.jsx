@@ -1,6 +1,5 @@
 import { createRoot } from 'react-dom/client'
 import { useState, useEffect, StrictMode } from "react";
-import { motion } from "motion/react";
 
 import './main.css'
 

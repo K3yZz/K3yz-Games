@@ -20,6 +20,9 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(jiti@2.6.1)(lightningcss@1.30.2))
+      bdfparser:
+        specifier: ^2.2.5
+        version: 2.2.5
       motion:
         specifier: ^12.29.0
         version: 12.29.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -754,6 +757,10 @@ packages:
   baseline-browser-mapping@2.9.14:
     resolution: {integrity: sha512-B0xUquLkiGLgHhpPBqvl7GWegWBUNuujQ6kXd/r1U38ElPT6Ok8KZ8e+FpUGEc2ZoRQUzq/aUnaKFc/svWUGSg==}
     hasBin: true
+
+  bdfparser@2.2.5:
+    resolution: {integrity: sha512-XztB/5cPhbZlg9SI5vfA0glt9KUu5y5EXY8MQx6/5pFK3XYElSuZ3HvtMbeET55IJTl4E3oAHbitjjSgd9X2fA==}
+    engines: {node: '>= 12.0'}
 
   bidi-js@1.0.3:
     resolution: {integrity: sha512-RKshQI1R3YQ+n9YJz2QQ147P66ELpa1FQEg20Dk8oW9t2KgLbpDLLp9aGZ7y8WHSshDknG0bknqGw5/tyCs5tw==}
@@ -2111,6 +2118,8 @@ snapshots:
   base64-js@1.5.1: {}
 
   baseline-browser-mapping@2.9.14: {}
+
+  bdfparser@2.2.5: {}
 
   bidi-js@1.0.3:
     dependencies:
