@@ -1,11 +1,11 @@
 import { motion } from "motion/react"
 import { useState } from "react";
 
-export function UI({ setAnimPlayStart }) {
+export function UI() {
     const [fadeOut, setFadeOut] = useState(false);
 
     const handlePlayClick = () => {
-        setAnimPlayStart(true);
+        
         setFadeOut(true);
     };
     

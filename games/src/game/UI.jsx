@@ -151,8 +151,8 @@ function SplashScreen({ onComplete }) {
 
 function Desktop() {
     return (
-        <div className="bg-blue-400 h-screen w-screen flex flex-col items-center justify-center">
-            hi
+        <div className="bg-blue-800 h-screen w-screen flex flex-col items-center justify-center">
+            <Button>fortesting</Button>
         </div>
     );
 }

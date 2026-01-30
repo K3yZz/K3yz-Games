@@ -1,25 +1,54 @@
-import { useRef, useMemo, useEffect } from 'react'
-import { useFrame, useThree, Canvas } from '@react-three/fiber'
-import { useHelper } from '@react-three/drei'
 import * as THREE from 'three'
+import React, { useRef, useEffect } from 'react'
 
-const showLightDebug = false;
+// import studio from '@theatre/studio'
+// import extension from '@theatre/r3f/dist/extension'
 
-//* Scene Stuff *//
-function Lights() {
-  const spotRef = useRef()
-  const spotRef2 = useRef()
+// studio.initialize()
+// studio.extend(extension)
 
-  if (showLightDebug === true) {
-    useHelper(spotRef, THREE.SpotLightHelper)
-    useHelper(spotRef2, THREE.SpotLightHelper)
-  }
+//* Camera Sheet Setup *//
+import { SheetProvider, PerspectiveCamera } from '@theatre/r3f'
+import { getProject } from '@theatre/core'
+import projectJson from '../data/MainMenu.theatre-project-state.json'
+
+const project = getProject('MainMenu', { state: projectJson });
+const sheet = project.sheet('camAnim');
+
+//* camera stuff *//
+import { useFrame } from '@react-three/fiber';
+
+function Camera() {
+  const cameraRef = useRef();
+  const target = new THREE.Vector3(0, 0, 0);
+
+  useFrame(() => {
+    if (cameraRef.current) {
+      cameraRef.current.lookAt(target);
+    }
+  });
+
+  return (
+    <PerspectiveCamera
+      theatreKey="Camera"
+      makeDefault
+      position={[0, 0, -8]}
+      ref={cameraRef}
+    />
+  );
+}
+
+//* Scene Lights *//
+import { useHelper } from '@react-three/drei'
+
+function Lights({ showLightDebug = false }) {
+  const spotRef = React.useRef()
+
+  useHelper(showLightDebug ? spotRef : null, THREE.SpotLightHelper)
 
   return (
     <>
       <ambientLight intensity={0.2} />
-
-      {/* computer light */}
       <spotLight
         ref={spotRef}
         color={"blue"}
@@ -34,102 +63,30 @@ function Lights() {
   )
 }
 
-//* Camera Setup *//
-/**
- * @param {THREE.Camera} cam - the camera to animate
- * @param {number} elapsed - time since animation started
- * @param {Object} options - configuration
- *   options.startPos: THREE.Vector3 - start position
- *   options.endPos: THREE.Vector3 - end position
- *   options.startFov: number - starting FOV
- *   options.endFov: number - ending FOV
- *   options.duration: number - total duration in seconds
- */
-
-export function animateCamera(cam, elapsed, options) {
-  const { startPos, endPos, startFov, endFov, duration } = options;
-
-  const t = THREE.MathUtils.clamp(elapsed / duration, 0, 1);
-  const smoothT = THREE.MathUtils.smootherstep(t, 0, 1);
-
-  if (startPos && endPos) {
-    cam.position.lerpVectors(startPos, endPos, smoothT);
-  }
-
-  if (startFov !== undefined && endFov !== undefined) {
-    cam.fov = THREE.MathUtils.lerp(startFov, endFov, smoothT);
-    cam.updateProjectionMatrix();
-  }
-
-  cam.lookAt(0, 0, 0);
-}
-
-function Camera({ animPlayStarted }) {
-  const { set } = useThree();
-  const cameraRef = useRef();
-
-  const cam = useMemo(() => {
-    const c = new THREE.PerspectiveCamera(
-      45,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-    c.position.set(0, 0, -8);
-    c.lookAt(0, 0, 0);
-    return c;
-  }, []);
-
-  useEffect(() => {
-    set({ camera: cam });
-  }, [set, cam]);
-
-  const playStartTimeRef = useRef(null);
-
-  useFrame(({ clock }) => {
-    const elapsed = clock.getElapsedTime();
-
-    if (!animPlayStarted) {
-      // Title animation
-      animateCamera(cam, elapsed, {
-        startPos: new THREE.Vector3(0, 0, -10),
-        endPos: new THREE.Vector3(0, 0, -3),
-        duration: 3,
-      });
-    } else {
-      if (playStartTimeRef.current === null) {
-        playStartTimeRef.current = elapsed;
-      }
-
-      const playElapsed = elapsed - playStartTimeRef.current;
-
-      animateCamera(cam, playElapsed, {
-        startPos: new THREE.Vector3(0, 0, -3),
-        endPos: new THREE.Vector3(0, 0, 0),
-        startFov: 45,
-        endFov: 120,
-        duration: 3
-      });
-    }
-  });
-
-  return <primitive ref={cameraRef} object={cam} />;
-}
-
 //* Main Scene Component *//
 import { Computer } from './Computer.jsx'
 import { UI } from './UI.jsx'
+import { Canvas } from '@react-three/fiber'
 
-export function MainMenu({ animPlayStarted, setAnimPlayStart }) {
+export function MainMenu({ }) {
+  useEffect(() => {
+    sheet.project.ready.then(() => {
+      sheet.sequence.play({ range: [0, 3] });
+    });
+  }, []);
+
+
   return (
     <>
       <Canvas className='bg-white'>
+        <SheetProvider sheet={sheet}>
+          <Camera />
+        </SheetProvider>
+
         <Computer />
         <Lights />
-        <Camera animPlayStarted={animPlayStarted} />
       </Canvas>
-      <UI setAnimPlayStart={setAnimPlayStart} />
+      <UI />
     </>
-  );
+  )
 }
-
