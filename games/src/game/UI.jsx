@@ -1,99 +1,178 @@
 import { useEffect, useRef, useState } from 'react';
-import { $Font } from 'bdfparser';
+import { motion } from 'motion/react';
+import { Canvas, useFrame } from '@react-three/fiber'
+import { EffectComposer, Pixelation } from '@react-three/postprocessing';
+import CRTEffect from 'vault66-crt-effect';
+import 'vault66-crt-effect/dist/vault66-crt-effect.css';
 
-function BootScreen(setSplashStart) {
-    const canvasRef = useRef(null);
+const TEXT_CONTENT = [
+    "K3yzBIOS 1.0 Release 1.0",
+    "Copyright 1989-2000 K3yz Technologies Ltd.",
+    ".",
+    "BIOS version 29.3",
+    "System ID = 1024580",
+    "Build Time = 09/7/05 03:09:52",
+    ".",
+    "CPU = 1990s 486/Pentium (25-100 MHz)",
+    "GPU = Integrated graphics (Intel HD/UHD)",
+    "RAM = SDRAM 1GB",
+    "",
+    "Running with Windows 96",
+    "initializing...",
+    ".",
+    ".",
+    ".",
+    "",
+    "-Completed-",
+    "executing..."
+];
 
-    const textContent = [
-        "K3yzBIOS 1.0 Release 1.0",
-        "Copyright 1989-2000 K3yz Technologies Ltd.",
-        "",
-        "BIOS version 29.3",
-        "System ID = 1024580",
-        "Build Time = 09/7/05 03:09:52",
-        "",
-        "CPU = 1990s 486/Pentium (25-100 MHz)",
-        "GPU = Integrated graphics (Intel HD/UHD)",
-        "RAM = SDRAM 1GB",
-        "",
-        "Running with Windows 96",
-        "initializing...",
-        ".",
-        ".",
-        ".",
-        "",
-        "-Completed-",
-        "executing..."
-    ]
+function BootScreen({ onComplete }) {
+    const [visibleLines, setVisibleLines] = useState([]);
+    const timeoutRef = useRef(null);
+    const completedRef = useRef(false);
 
     useEffect(() => {
-        const loadFont = async () => {
-            const response = await fetch('/ib8x8u.bdf');
-            const text = await response.text();
+        let index = 0;
 
-            function* getline(str) { yield* str.split('\n'); }
-
-            const font = await $Font(getline(text));
-
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            let currentLine = 0;
-            const lineHeight = 16;
-
-            const drawNextLine = () => {
-                if (currentLine >= textContent.length) {
-                    setSplashStart(true);
-                    return
+        const drawNextLine = () => {
+            if (index >= TEXT_CONTENT.length) {
+                if (!completedRef.current) {
+                    completedRef.current = true;
+                    onComplete(true);
                 }
-                const line = textContent[currentLine];
-                const glyph = font.draw(line).enlarge(2, 2);
+                return;
+            }
 
-                ctx.save();
-                ctx.translate(0, currentLine * lineHeight);
-                glyph.draw2canvas(ctx, { '0': '#000', '1': '#A9A9A9' });
-                ctx.restore();
+            setVisibleLines(prev => [...prev, TEXT_CONTENT[index]]);
+            index++;
 
-                currentLine++;
-
-                let speed = Math.floor(Math.random() * 300) + 200;
-                let time = Math.floor(Math.random() * speed);
-                setTimeout(drawNextLine, time);
-            };
-
-            setTimeout(drawNextLine, 1000);
+            const delay = Math.floor(Math.random() * 300) + 200;
+            timeoutRef.current = setTimeout(drawNextLine, delay);
         };
 
-        loadFont();
-    }, []);
+        timeoutRef.current = setTimeout(drawNextLine, 1000);
+
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
+    }, [onComplete]);
 
     return (
-        <div className="bg-black h-screen w-screen">
-            <canvas
-                ref={canvasRef}
-                width={840}
-                height={480}
-                className='bg-black'
-            />
+        <div className="bg-black h-screen w-screen p-4 font-[AtariClassic] text-gray-600 text-sm">
+            {visibleLines.map((line, i) => (
+                <div key={i}>{line}</div>
+            ))}
         </div>
     );
 }
 
-function SplashScreen() {
+function SplashScreen({ onComplete }) {
+    function Finalizing() {
+        return (
+            <motion.p
+                className="text-xl text-white flex font-[AtariClassic]"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+            >
+                Finalizing
+                {[0, 1, 2].map((i) => (
+                    <motion.span
+                        key={i}
+                        className="ml-1"
+                        animate={{ opacity: [0, 1, 0] }}
+                        transition={{
+                            duration: 1.5,
+                            repeat: Infinity,
+                            delay: i * 0.3,
+                        }}
+                    >
+                        .
+                    </motion.span>
+                ))}
+            </motion.p>
+        );
+    }
+
+    function SpinningCube() {
+        const ref = useRef()
+
+        useFrame((_, delta) => {
+            ref.current.rotation.x += delta
+            ref.current.rotation.y += delta
+        })
+
+        return (
+            <mesh ref={ref}>
+                <boxGeometry args={[3, 3, 3]} />
+                <meshStandardMaterial color="red" />
+            </mesh>
+        )
+    }
+
+    function Scene() {
+        return (
+            <Canvas camera={{ position: [3, 3, 3] }}>
+                <ambientLight intensity={0.4} />
+                <directionalLight position={[5, 5, 5]} />
+                <SpinningCube />
+                <EffectComposer>
+                    <Pixelation
+                        granularity={5}
+                    />
+                </EffectComposer>
+            </Canvas>
+        )
+    }
+
+    useEffect(() => {
+        const t = setTimeout(() => {
+            onComplete();
+        }, 3000);
+
+        return () => clearTimeout(t);
+    }, [onComplete]);
+
     return (
-        <div>uiawhaiuodhuhd</div>
+        <div>
+            <div className="bg-blue-900 h-screen w-screen flex flex-col items-center justify-center">
+                <motion.h1 className="text-3xl font-[AtariClassic] text-white" initial={{ opacity: 0 }} transition={{ delay: 0.5 }} animate={{ opacity: 1 }}>K3yzOS</motion.h1>
+                <div className="w-32 h-32">
+                    <Scene />
+                </div>
+                <Finalizing />
+            </div>
+        </div>
     )
 }
 
+function Desktop() {
+    return (
+        <div className="bg-blue-400 h-screen w-screen flex flex-col items-center justify-center">
+            hi
+        </div>
+    );
+}
+
 export function GameUI() {
-    const [splashStart, setSplashStart] = useState(false);
+    const [phase, setPhase] = useState("boot");
 
     return (
         <>
-            {!splashStart && <BootScreen />}
-            {splashStart && <SplashScreen />}
+            <CRTEffect preset="apple2">
+                {phase === "boot" && (
+                    <BootScreen onComplete={() => setPhase("splash")} />
+                )}
+
+                {phase === "splash" && (
+                    <SplashScreen onComplete={() => setPhase("desktop")} />
+                )}
+
+                {phase === "desktop" && <Desktop />}
+            </CRTEffect>
         </>
     );
 }

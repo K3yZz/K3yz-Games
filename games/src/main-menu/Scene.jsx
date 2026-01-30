@@ -107,7 +107,7 @@ function Camera({ animPlayStarted }) {
         startPos: new THREE.Vector3(0, 0, -3),
         endPos: new THREE.Vector3(0, 0, 0),
         startFov: 45,
-        endFov: 100,
+        endFov: 120,
         duration: 3
       });
     }

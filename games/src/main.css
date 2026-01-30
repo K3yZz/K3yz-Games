@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'AtariClassic';
+  src: url('../public/AtariClassic-Regular.ttf') format('truetype');
+}
+
 html, body, #root {
   @apply h-screen w-screen;
 }
